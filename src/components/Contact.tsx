@@ -1,17 +1,53 @@
 import { motion } from 'motion/react';
-import { Mail, MessageSquare, Send } from 'lucide-react';
+import { Mail, MessageSquare, Send, CheckCircle2 } from 'lucide-react';
+import { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { db } from '../lib/firebase';
 
 export function Contact() {
   const { user, openAuthModal } = useAuth();
+  const [message, setMessage] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [success, setSuccess] = useState(false);
+  const [error, setError] = useState('');
 
-  const handleContactSubmit = (e: React.FormEvent) => {
+  const handleContactSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) {
       openAuthModal('required');
       return;
     }
-    alert(`Thank you ${user.name}! Your message has been simulated to be sent.`);
+    
+    if (!message.trim()) {
+      setError('Message cannot be empty');
+      return;
+    }
+    
+    setIsSubmitting(true);
+    setError('');
+    
+    try {
+      // Save message to Firebase Firestore
+      await addDoc(collection(db, 'messages'), {
+        userId: user.id,
+        name: user.name,
+        email: user.email,
+        message: message,
+        createdAt: serverTimestamp()
+      });
+      
+      setSuccess(true);
+      setMessage('');
+      
+      // Reset success message after 5 seconds
+      setTimeout(() => setSuccess(false), 5000);
+    } catch (err: any) {
+      setError(err.message || 'Failed to send message');
+      console.error('Error saving message:', err);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -79,14 +115,28 @@ export function Contact() {
             className="glass p-8 rounded-2xl flex flex-col gap-6"
             onSubmit={handleContactSubmit}
           >
+            {success && (
+              <div className="p-4 bg-green-500/10 border border-green-500/20 rounded-xl flex items-center gap-3">
+                <CheckCircle2 className="text-green-500 shrink-0" size={20} />
+                <p className="text-green-600 dark:text-green-400 text-sm font-medium">Message sent successfully! I'll get back to you soon.</p>
+              </div>
+            )}
+            
+            {error && (
+              <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-xl flex items-center gap-3">
+                <p className="text-red-500 text-sm font-medium">{error}</p>
+              </div>
+            )}
+          
             <div>
               <label htmlFor="name" className="block text-sm font-medium mb-2 opacity-80">Name</label>
               <input
                 type="text"
                 id="name"
-                className="w-full bg-slate-100 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all"
+                className="w-full bg-slate-100 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all text-slate-500"
                 placeholder="John Doe"
                 defaultValue={user?.name || ''}
+                disabled={!!user}
                 required
               />
             </div>
@@ -96,9 +146,10 @@ export function Contact() {
               <input
                 type="email"
                 id="email"
-                className="w-full bg-slate-100 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all"
+                className="w-full bg-slate-100 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all text-slate-500"
                 placeholder="john@example.com"
                 defaultValue={user?.email || ''}
+                disabled={!!user}
                 required
               />
             </div>
@@ -108,6 +159,8 @@ export function Contact() {
               <textarea
                 id="message"
                 rows={4}
+                value={message}
+                onChange={(e) => setMessage(e.target.value)}
                 className="w-full bg-slate-100 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all resize-none"
                 placeholder="Hi Deepanshu, I'd like to talk about..."
                 required
@@ -116,9 +169,12 @@ export function Contact() {
             
             <button
               type="submit"
-              className="w-full py-4 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:opacity-90 text-white font-bold flex items-center justify-center gap-2 transition-all mt-2"
+              disabled={isSubmitting}
+              className="w-full py-4 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:opacity-90 disabled:opacity-50 text-white font-bold flex items-center justify-center gap-2 transition-all mt-2"
             >
-              Send Message <Send size={18} />
+              {isSubmitting ? 'Sending...' : (
+                <>Send Message <Send size={18} /></>
+              )}
             </button>
           </motion.form>
         </div>

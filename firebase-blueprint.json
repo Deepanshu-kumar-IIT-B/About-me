@@ -1,0 +1,26 @@
+{
+  "collections": {
+    "users": {
+      "__description__": "User profiles containing name, email, and creation date",
+      "__schema__": {
+        "name": "string",
+        "email": "string",
+        "createdAt": "timestamp"
+      },
+      "__security__": "Users can only read and write their own profile document.",
+      "__subcollections__": {}
+    },
+    "messages": {
+      "__description__": "Contact form submissions from authenticated users",
+      "__schema__": {
+        "userId": "string",
+        "name": "string",
+        "email": "string",
+        "message": "string",
+        "createdAt": "timestamp"
+      },
+      "__security__": "Only authenticated users can create messages. Users can only create messages where userId matches their own ID. Reading is not allowed for regular users.",
+      "__subcollections__": {}
+    }
+  }
+}
