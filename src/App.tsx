@@ -10,6 +10,9 @@ import { motion, useScroll, useSpring } from 'motion/react';
 import { AuthProvider } from './contexts/AuthContext';
 import { AuthModal } from './components/AuthModal';
 
+
+
+
 export default function App() {
   const { scrollYProgress } = useScroll();
   const scaleX = useSpring(scrollYProgress, {
